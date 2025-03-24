@@ -244,7 +244,7 @@ func (waf *CSSWAF) renderWafResponse(w http.ResponseWriter, r *http.Request) {
 <html>
 <head>
 <link rel="icon" href="data:image/png;base64,iVBORw0KGgo="> <!-- empty favicon to prevent browser requests -->
-<meta http-equiv="refresh" content="6">
+<meta http-equiv="refresh" content="4.5">
 <style>
 .honeypot {` + func() string {
 		lines := []string{}
@@ -272,7 +272,7 @@ height: 1px;
 position: absolute;
 top: 0px;
 left: 0px;
-animation: csswaf-load 3s linear infinite;
+animation: csswaf-load 2s linear infinite;
 }
 
 /* center the content */
@@ -283,7 +283,7 @@ align-items: center;
 height: 100vh;
 margin: 0;
 font-family: Arial, sans-serif;
-background-color: #f9f9f9;
+background-color: #f9f5d7;
 }
 
 .container {
@@ -412,11 +412,11 @@ text-align: center;
 /* Image switching animation */
 
 .pensive {
-	animation: show-pensive 4s steps(1, end) forwards;
+	animation: show-pensive 3s steps(1, end) forwards;
 }
 
 .mysession {
-	animation: show-mysession 4s steps(1, end) forwards;
+	animation: show-mysession 3s steps(1, end) forwards;
 	opacity: 0; /* hide initially */
 }
 
@@ -465,9 +465,12 @@ text-align: center;
 		}
 		return strings.Join(lines, "\n")
 	}() + `
-	<p class="message">Challenge: please wait for 5 seconds</p>
+	<p class="message">Challenge: please wait for 4 seconds</p>
 	<p class="message">This Challenge is NoJS friendly</p>
 	<p class="message">Session ID: ` + sessionID + `</p>
+	<footer>
+		<p>Powered by <a href="https://github.com/yzqzss/csswaf">CSSWAF</a></p>
+	</footer>
 </div>
 </body>
 </html>`
