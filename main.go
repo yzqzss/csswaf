@@ -14,88 +14,105 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
-)
 
-// en:
-// css puts the lazy-loaded hidden images (empty.gif) in order in various out-of-view positions.
-// css lets the browser load these images one by one.
-// The backend measures the loading order, and the order matches to pass (set-cookie)
+	"github.com/jellydator/ttlcache/v3"
+)
 
 //go:embed empty.gif
 var emptyGIF []byte
 
-var HoneypotImg = []string{"K", "L", "M", "N", "O", "P", "Q", "R", "S", "T"}
+var HoneypotImg = []string{"BAD"}
 var Sequence = []string{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J"}
 
 // SessionTracker keeps track of image loading sequences for each session
 type SessionTracker struct {
-	sequences map[string][]string // Maps session ID to sequence of loaded images
-	expected  map[string][]string // Maps session ID to expected sequence
-	validated map[string]bool     // Maps session ID to validation status
-	mu        sync.Mutex
+	sequences *ttlcache.Cache[string, []string] // Maps session ID to sequence of loaded images
+	expected  *ttlcache.Cache[string, []string] // Maps session ID to expected sequence
+	validated *ttlcache.Cache[string, bool]     // Maps session ID to validation status
 }
 
 // NewSessionTracker creates a new session tracker
-func NewSessionTracker() *SessionTracker {
+func NewSessionTracker(ttl time.Duration) *SessionTracker {
+	// Create caches with 1-hour TTL
+	sequences := ttlcache.New(
+		ttlcache.WithTTL[string, []string](ttl),
+		ttlcache.WithDisableTouchOnHit[string, []string](),
+	)
+	expected := ttlcache.New(
+		ttlcache.WithTTL[string, []string](ttl),
+		ttlcache.WithDisableTouchOnHit[string, []string](),
+	)
+	validated := ttlcache.New(
+		ttlcache.WithTTL[string, bool](ttl),
+		ttlcache.WithDisableTouchOnHit[string, bool](),
+	)
+
+	// Start the cache cleanup processes
+	go sequences.Start()
+	go expected.Start()
+	go validated.Start()
+
 	return &SessionTracker{
-		sequences: make(map[string][]string),
-		expected:  make(map[string][]string),
-		validated: make(map[string]bool),
+		sequences: sequences,
+		expected:  expected,
+		validated: validated,
 	}
 }
 
 // AddImageLoad records an image load for a session
 func (st *SessionTracker) AddImageLoad(sessionID, imageID string) {
-	st.mu.Lock()
-	defer st.mu.Unlock()
-
-	if _, exists := st.sequences[sessionID]; !exists {
-		st.sequences[sessionID] = []string{}
+	var sequence []string
+	sequenceTTL := st.sequences.Get(sessionID)
+	if sequenceTTL != nil {
+		sequence = sequenceTTL.Value()
 	}
-
 	if slices.Contains(HoneypotImg, imageID) {
 		slog.Warn("Honeypot image loaded",
 			"sessionID", sessionID[:8],
 			"imageID", imageID,
 		)
-		st.sequences[sessionID] = []string{"Honeypot_placeholder"}
+		sequence = []string{"Honeypot_placeholder"}
+		st.sequences.Set(sessionID, sequence, ttlcache.DefaultTTL)
 		return
 	}
 
-	st.sequences[sessionID] = append(st.sequences[sessionID], imageID)
+	sequence = append(sequence, imageID)
+	slog.Info("Image loaded",
+		"sessionID", sessionID[:8],
+		"imageID", imageID,
+		"sequence", sequence,
+	)
+	st.sequences.Set(sessionID, sequence, ttlcache.DefaultTTL)
 
 	// Check if sequence matches expected sequence
-	if expectedSeq, exists := st.expected[sessionID]; exists {
-		currentSeq := st.sequences[sessionID]
-
-		// Check if we have enough loaded images to make a decision
-		if len(currentSeq) == len(expectedSeq) {
-			match := true
-			for i := range currentSeq {
-				if currentSeq[i] != expectedSeq[i] {
-					match = false
-					break
-				}
+	expectedSeqTTL := st.expected.Get(sessionID)
+	var expectedSeq []string
+	if expectedSeqTTL != nil {
+		expectedSeq = expectedSeqTTL.Value()
+	}
+	if expectedSeq != nil && len(sequence) == len(expectedSeq) {
+		match := true
+		for i := range sequence {
+			if (sequence)[i] != (expectedSeq)[i] {
+				match = false
+				break
 			}
-			st.validated[sessionID] = match
-			slog.Info("Session validation result",
-				"sessionID", sessionID[:8],
-				"validated", match,
-				"expected", expectedSeq,
-				"received", currentSeq,
-			)
 		}
+		st.validated.Set(sessionID, match, ttlcache.DefaultTTL)
+		slog.Info("Session validation result",
+			"sessionID", sessionID[:8],
+			"validated", match,
+			"expected", expectedSeq,
+			"received", sequence,
+		)
 	}
 }
 
 // SetExpectedSequence sets the expected sequence for a session
 func (st *SessionTracker) SetExpectedSequence(sessionID string, sequence []string) {
-	st.mu.Lock()
-	defer st.mu.Unlock()
-	st.expected[sessionID] = sequence
-	st.sequences[sessionID] = []string{} // Reset sequence
+	st.expected.Set(sessionID, sequence, ttlcache.DefaultTTL)
+	st.sequences.Set(sessionID, []string{}, ttlcache.DefaultTTL) // Reset sequence
 	slog.Info("Set expected sequence for session",
 		"sessionID", sessionID[:8],
 		"sequence", sequence,
@@ -104,9 +121,11 @@ func (st *SessionTracker) SetExpectedSequence(sessionID string, sequence []strin
 
 // IsValidated checks if a session has been validated
 func (st *SessionTracker) IsValidated(sessionID string) bool {
-	st.mu.Lock()
-	defer st.mu.Unlock()
-	return st.validated[sessionID]
+	validated := st.validated.Get(sessionID)
+	if validated != nil {
+		return validated.Value()
+	}
+	return false
 }
 
 // GenerateSessionID creates a random session ID
@@ -129,14 +148,14 @@ type CSSWAF struct {
 }
 
 // NewCSSWAF creates a new CSS-based WAF
-func NewCSSWAF(targetURL string) (*CSSWAF, error) {
+func NewCSSWAF(targetURL string, ttl time.Duration) (*CSSWAF, error) {
 	target, err := url.Parse(targetURL)
 	if err != nil {
 		return nil, err
 	}
 
 	csswaf := &CSSWAF{
-		tracker:        NewSessionTracker(),
+		tracker:        NewSessionTracker(ttl),
 		targetURL:      target,
 		cookieName:     "csswaf_session",
 		cookieLifetime: 1 * time.Hour,
@@ -526,6 +545,36 @@ func (waf *CSSWAF) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// bypass non-browser user-agent
+	userAgent := r.Header.Get("User-Agent")
+	if !strings.Contains(userAgent, "Mozilla") {
+		slog.Info("Non-browser user-agent, proxying request",
+			"userAgent", userAgent,
+			"url", r.URL.String(),
+		)
+		waf.proxy.ServeHTTP(w, r)
+		return
+	}
+
+	// bypass RSS requests
+	pathLow := strings.ToLower(r.URL.Path)
+	if strings.Contains(pathLow, "rss") || strings.Contains(pathLow, "feed") || strings.Contains(pathLow, "atom") {
+		slog.Info("RSS request, proxying request",
+			"url", r.URL.String(),
+		)
+		waf.proxy.ServeHTTP(w, r)
+		return
+	}
+
+	// bypass .txt requests
+	if strings.HasSuffix(pathLow, ".txt") {
+		slog.Info("Text file request, proxying request",
+			"url", r.URL.String(),
+		)
+		waf.proxy.ServeHTTP(w, r)
+		return
+	}
+
 	// Check for session cookie
 	cookie, err := r.Cookie(waf.cookieName)
 	if err == nil {
@@ -552,6 +601,7 @@ func (waf *CSSWAF) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 var target = flag.String("target", "http://localhost:8080", "target to reverse proxy to")
 var bind = flag.String("bind", ":8081", "address to bind to")
+var ttl = flag.Duration("ttl", 1*time.Hour, "session expiration time")
 
 func main() {
 	flag.Parse()
@@ -562,7 +612,7 @@ func main() {
 	slog.SetDefault(logger)
 
 	// Create CSSWAF instance
-	waf, err := NewCSSWAF(*target)
+	waf, err := NewCSSWAF(*target, *ttl)
 	if err != nil {
 		slog.Error("Failed to create CSSWAF", "error", err)
 		return
