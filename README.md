@@ -4,7 +4,7 @@
 
 > !WARNING! This is a very simple Proof of Concept and **should not be used in production**.
 
-https://github.com/user-attachments/assets/3684cbed-5fc8-425d-98e9-5742407de8ae
+https://github.com/user-attachments/assets/bbc3b8f1-82f7-4b36-8be3-0af238f4e44c
 
 Demo: https://csswaf-demo.othing.xyz
 
