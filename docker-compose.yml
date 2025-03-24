@@ -1,0 +1,14 @@
+version: '3.7'
+
+services:
+  csswaf:
+    image: csswaf
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: csswaf
+    restart: always
+    hostname: csswaf
+    command: ["/app/csswaf", "-target", "test"]
+    ports:
+      - "8081:8081"

@@ -602,9 +602,19 @@ func (waf *CSSWAF) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	waf.renderWafResponse(w, r)
 }
 
-var target = flag.String("target", "http://localhost:8080", "target to reverse proxy to")
+var target = flag.String("target", "http://localhost:8080", "target to reverse proxy to. ('test' to run a test server at :8080)")
 var bind = flag.String("bind", ":8081", "address to bind to")
 var ttl = flag.Duration("ttl", 1*time.Hour, "session expiration time")
+
+func testServer() {
+	// Create a test server
+	newhttp := http.NewServeMux()
+	newhttp.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = w.Write([]byte("Hello, world!"))
+	})
+	slog.Error(http.ListenAndServe(":8080", newhttp).Error())
+}
 
 func main() {
 	flag.Parse()
@@ -613,6 +623,13 @@ func main() {
 	}
 	logger := slog.New(slog.NewTextHandler(os.Stderr, opts))
 	slog.SetDefault(logger)
+
+	if *target == "test" {
+		// Run a test server at :8080
+		slog.Info("Running test server at :8080")
+		go testServer()
+		*target = "http://localhost:8080"
+	}
 
 	// Create CSSWAF instance
 	waf, err := NewCSSWAF(*target, *ttl)
