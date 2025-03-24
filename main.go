@@ -448,8 +448,8 @@ text-align: center;
 	width: 0px;
 	height: 0px;
 	position: absolute;
-	top: -99px;
-	left: -99px;
+	top: -9898px;
+	left: -9898px;
 }
   </style>
 </head>
@@ -543,18 +543,20 @@ func (waf *CSSWAF) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			cookie, err := r.Cookie(waf.cookieName)
 			if err == nil {
 				sessionID := cookie.Value
-				w.Header().Set("Content-Type", "image/webp")
 				// no-cache
 				w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate")
 				w.Header().Set("Pragma", "no-cache")
+				w.Header().Set("Expires", "0")
 
 				if waf.tracker.IsValidated(sessionID) {
-					w.Header().Set("Content-Length", strconv.Itoa(len(happywebp)))
-					_, _ = w.Write(happywebp)
+					// 302 redirect to happy.webp
+					w.Header().Set("Location", "/_csswaf/res/happy.webp")
+					w.WriteHeader(http.StatusFound)
 					return
 				} else {
-					w.Header().Set("Content-Length", strconv.Itoa(len(sadwebp)))
-					_, _ = w.Write(sadwebp)
+					// 302 redirect to sad.webp
+					w.Header().Set("Location", "/_csswaf/res/sad.webp")
+					w.WriteHeader(http.StatusFound)
 					return
 				}
 			}
