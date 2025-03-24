@@ -11,7 +11,7 @@ Demo: https://csswaf-demo.othing.xyz
 ## What is CSSWAF?
 
 CSSWAF places random hidden `empty.gif` files in CSS animation progress, allowing the browser to load these images one by one.
-The backend measures the loading order. If the loading order is correct, it is identified as a browser; otherwise, it is identified as a bot.
+The backend measures the loading order. If the loading order is correct, it passes the request to the target server. Otherwise, 🙅.
 
 ## HoneyPot
 
