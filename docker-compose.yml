@@ -6,7 +6,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: csswaf
     restart: always
     hostname: csswaf
     command: ["/app/csswaf", "-target", "test"]
