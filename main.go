@@ -252,8 +252,8 @@ func (waf *CSSWAF) renderWafResponse(w http.ResponseWriter, r *http.Request) {
 <style>
 .honeypot {` + func() string {
 		lines := []string{}
-		for _, img := range HoneypotImg {
-			lines = append(lines, "content: url('/_csswaf/img/"+img+"?sid="+sessionID+"');")
+		for _, img := range shuffle(HoneypotImg) {
+			lines = append(lines, "content: url('/_csswaf/img/"+img+"?sid="+sessionID+"&from=css_content_url');")
 			break // TEST: only one honeypot css image
 		}
 		return strings.Join(lines, "\n")
@@ -456,8 +456,8 @@ text-align: center;
 <body>
 ` + func() string {
 		lines := []string{}
-		for _, img := range HoneypotImg {
-			lines = append(lines, "<a href='/_csswaf/img/"+img+"?sid="+sessionID+"' class='honeya'>View Content</a>")
+		for _, img := range shuffle(HoneypotImg) {
+			lines = append(lines, "<a href='/_csswaf/img/"+img+"?sid="+sessionID+"&from=a_href' class='honeya'>View Content</a>")
 		}
 		return strings.Join(lines, "\n")
 	}() + `
@@ -480,7 +480,7 @@ text-align: center;
 		for _, img := range shuffle(HoneypotImg) {
 			// put the honeypot to unseen positions, enable lazy loading.
 			// If user loads the honeypot, BOOM! It's a bot.
-			lines = append(lines, `<img src="/_csswaf/img/`+img+`?sid=`+sessionID+`" style="width: 0px; height: 0px; position: absolute; top: -9999px; left: -9999px;" loading="lazy">`)
+			lines = append(lines, `<img src="/_csswaf/img/`+img+`?sid=`+sessionID+`&from=img_src" style="width: 0px; height: 0px; position: absolute; top: -9999px; left: -9999px;" loading="lazy">`)
 		}
 		return strings.Join(lines, "\n")
 	}() + `
