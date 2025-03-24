@@ -22,8 +22,8 @@ import (
 //go:embed empty.gif
 var emptyGIF []byte
 
-var HoneypotImg = []string{"BAD"}
-var Sequence = []string{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J"}
+var HoneypotImg = []string{"G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q"}
+var Sequence = []string{"A", "B", "C", "D", "E", "F"}
 
 // SessionTracker keeps track of image loading sequences for each session
 type SessionTracker struct {
@@ -31,6 +31,10 @@ type SessionTracker struct {
 	expected  *ttlcache.Cache[string, []string] // Maps session ID to expected sequence
 	validated *ttlcache.Cache[string, bool]     // Maps session ID to validation status
 }
+
+var cssAnimationTS = 3.5
+var showSessionStatusTS = 4.0
+var pageRefreshTS = 5.5
 
 // NewSessionTracker creates a new session tracker
 func NewSessionTracker(ttl time.Duration) *SessionTracker {
@@ -244,7 +248,7 @@ func (waf *CSSWAF) renderWafResponse(w http.ResponseWriter, r *http.Request) {
 <html>
 <head>
 <link rel="icon" href="data:image/png;base64,iVBORw0KGgo="> <!-- empty favicon to prevent browser requests -->
-<meta http-equiv="refresh" content="4.5">
+<meta http-equiv="refresh" content="` + strconv.FormatFloat(pageRefreshTS, 'f', -1, 64) + `">
 <style>
 .honeypot {` + func() string {
 		lines := []string{}
@@ -272,7 +276,7 @@ height: 1px;
 position: absolute;
 top: 0px;
 left: 0px;
-animation: csswaf-load 2s linear infinite;
+animation: csswaf-load ` + strconv.FormatFloat(cssAnimationTS, 'f', -1, 64) + `s linear infinite;
 }
 
 /* center the content */
@@ -412,11 +416,11 @@ text-align: center;
 /* Image switching animation */
 
 .pensive {
-	animation: show-pensive 3s steps(1, end) forwards;
+	animation: show-pensive ` + strconv.FormatFloat(showSessionStatusTS, 'f', -1, 64) + `s steps(1, end) forwards;
 }
 
 .mysession {
-	animation: show-mysession 3s steps(1, end) forwards;
+	animation: show-mysession ` + strconv.FormatFloat(showSessionStatusTS, 'f', -1, 64) + `s steps(1, end) forwards;
 	opacity: 0; /* hide initially */
 }
 
@@ -465,7 +469,7 @@ text-align: center;
 		}
 		return strings.Join(lines, "\n")
 	}() + `
-	<p class="message">Challenge: please wait for 4 seconds</p>
+	<p class="message">Challenge: please wait for ` + strconv.FormatFloat(pageRefreshTS, 'f', -1, 64) + ` seconds</p>
 	<p class="message">This Challenge is NoJS friendly</p>
 	<p class="message">Session ID: ` + sessionID + `</p>
 	<footer>
