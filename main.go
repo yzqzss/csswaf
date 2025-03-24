@@ -480,7 +480,7 @@ text-align: center;
 		for _, img := range shuffle(HoneypotImg) {
 			// put the honeypot to unseen positions, enable lazy loading.
 			// If user loads the honeypot, BOOM! It's a bot.
-			lines = append(lines, `<img src="/_csswaf/img/`+img+`?sid=`+sessionID+`" style="width: 1px; height: 1px; position: absolute; top: -999px; left: -999px;" loading="lazy">`)
+			lines = append(lines, `<img src="/_csswaf/img/`+img+`?sid=`+sessionID+`" style="width: 0px; height: 0px; position: absolute; top: -9999px; left: -9999px;" loading="lazy">`)
 		}
 		return strings.Join(lines, "\n")
 	}() + `
