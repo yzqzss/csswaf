@@ -4,6 +4,8 @@
 
 > !WARNING! This is a proof of concept and should not be used in production.
 
+https://github.com/user-attachments/assets/3684cbed-5fc8-425d-98e9-5742407de8ae
+
 ## What is CSSWAF?
 
 CSSWAF places random hidden `empty.gif` files in CSS animation progress, allowing the browser to load these images one by one.
