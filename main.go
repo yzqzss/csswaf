@@ -22,7 +22,7 @@ import (
 //go:embed empty.gif
 var emptyGIF []byte
 
-var HoneypotImg = []string{"G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q"}
+var HoneypotImg = []string{"G.html", "H.txt", "I.sitemap", "J.xml", "article", "content", "user", "history", "O", "P", "Q"}
 var Sequence = []string{"A", "B", "C", "D", "E", "F"}
 
 // SessionTracker keeps track of image loading sequences for each session
@@ -443,9 +443,24 @@ text-align: center;
 		content: url('/_csswaf/res/sessionstatus.webp');
 	}
 }
+.honeya {
+	display: none;
+	width: 0px;
+	height: 0px;
+	position: absolute;
+	top: -99px;
+	left: -99px;
+}
   </style>
 </head>
 <body>
+` + func() string {
+		lines := []string{}
+		for _, img := range HoneypotImg {
+			lines = append(lines, "<a href='/_csswaf/img/"+img+"?sid="+sessionID+"' class='honeya'>View Content</a>")
+		}
+		return strings.Join(lines, "\n")
+	}() + `
 <div class="csswaf-hidden"></div>
 <div class="container">
 	<div class="pensive"></div>

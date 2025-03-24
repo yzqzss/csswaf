@@ -2,7 +2,7 @@
 
 > Inspired by [anubis](https://github.com/TecharoHQ/anubis)
 
-> !WARNING! This is a proof of concept and should not be used in production.
+> !WARNING! This is a very simple Proof of Concept and **should not be used in production**.
 
 https://github.com/user-attachments/assets/3684cbed-5fc8-425d-98e9-5742407de8ae
 
@@ -15,8 +15,8 @@ The backend measures the loading order. If the loading order is correct, it is i
 
 ## HoneyPot
 
-CSSWAF places some honeypot `empty.gif` files in HTML `<img>` tags but instructs the browser not to load them.
-If someone loads the honeypot GIFs, 🙅.
+CSSWAF places some honeypot `empty.gif` files in HTML `<img>` tags but instructs the browser not to load them. If someone loads the honeypot GIFs, 🙅.
+CSSWAF also places some unvisible `<a>` tags in HTML, if someone clicks the honeypot links, 🙅.
 
 ## Usage
 
